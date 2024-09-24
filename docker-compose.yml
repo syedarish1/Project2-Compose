@@ -2,26 +2,29 @@ version: '3.8'
 services:
   jenkins:
     image: jenkins/jenkins:lts
-    user: root
+    container_name: jenkins
+    privileged: true
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
     ports:
       - "8080:8080"
       - "50000:50000"
-    environment:
-      - DOCKER_HOST=tcp://docker:2375
     depends_on:
-      - docker
+      - dind
 
-  docker:
-    image: docker:dind
+  dind:
+    image: docker:19.03-dind
+    container_name: docker
     privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
     volumes:
-      - docker-data:/var/lib/docker
-    ports:
-      - "2375:2375" # Expose Docker daemon to Jenkins
-    
+      - docker-certs:/certs
+      - /var/run/docker.sock:/var/run/docker.sock
+
 volumes:
   jenkins_home:
-  docker-data:
+  docker-certs:
