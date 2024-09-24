@@ -17,15 +17,11 @@ services:
   docker:
     image: docker:dind
     privileged: true
-    environment:
-      - DOCKER_TLS_CERTDIR=/certs
     volumes:
-      - docker-certs:/certs/client
       - docker-data:/var/lib/docker
     ports:
       - "2375:2375" # Expose Docker daemon to Jenkins
     
 volumes:
   jenkins_home:
-  docker-certs:
   docker-data:
