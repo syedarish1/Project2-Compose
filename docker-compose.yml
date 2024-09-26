@@ -1,42 +1,44 @@
+services:
+  dind:
+    image: docker:20.10-dind
+    container_name: dind
+    privileged: true
+    networks:
+      jenkins:
+        aliases: 
+         - docker
+    environment:
+      DOCKER_TLS_CERTDIR: "/certs"
+    volumes:
+      - docker-certs-ca:/certs/ca
+      - docker-certs-client:/certs/client
+      - jenkins-data:/var/jenkins_home
+    ports:
+      - "2376:2376"
+   
+  jenkins:
+    image: jenkins/jenkins:lts  # Updated to use the latest Jenkins LTS
+    container_name: jenkins
+    restart: unless-stopped
+    networks:
+      - jenkins
+    environment:
+      DOCKER_HOST: "tcp://docker:2376"
+      DOCKER_CERT_PATH: /certs/client
+      DOCKER_TLS_VERIFY: 1
+    volumes:
+      - docker-certs-client:/certs/client:ro
+      - jenkins-data:/var/jenkins_home
+      - /usr/bin/docker:/usr/bin/docker
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+
 networks:
-  docker:
+  jenkins:
+    driver: bridge
 
 volumes:
   jenkins-data:
-  docker-certs:
   docker-certs-ca:
-services:
-
-  jenkins:
-    image: jenkins/jenkins:lts-jdk11
-    restart: unless-stopped
-    networks:
-      - docker
-    ports:
-      - 8080:8080
-      - 50000:50000
-    tty: true
-    volumes:
-      - jenkins-data:/var/jenkins_home
-      - docker-certs:/certs/client:ro
-      - /usr/bin/docker:/usr/bin/docker
-    environment:
-      - DOCKER_HOST=tcp://docker:2376
-      - DOCKER_CERT_PATH=/certs/client
-      - DOCKER_TLS_VERIFY=1
-        
-  dind:
-    image: docker:dind
-    privileged: true
-    restart: unless-stopped
-    networks:
-      docker:
-        aliases:
-          - docker
-    tty: true
-    volumes:
-      - jenkins-data:/var/jenkins_home
-      - docker-certs:/certs/client
-      - docker-certs-ca:/certs/ca
-    environment:
-      - DOCKER_TLS_CERTDIR=/certs
+  docker-certs-client:
