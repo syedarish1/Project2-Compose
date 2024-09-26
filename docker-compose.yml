@@ -1,29 +1,42 @@
-services:
-  jenkins:
-    image: jenkins/jenkins:lts
-    container_name: jenkins
-    privileged: true
-    volumes:
-      - jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
-    ports:
-      - "8080:8080"
-      - "50000:50000"
-    depends_on:
-      - dind
-
-  dind:
-    image: docker:19.03-dind
-    container_name: docker
-    privileged: true
-    environment:
-      - DOCKER_TLS_CERTDIR=/certs
-    volumes:
-      - docker-certs:/certs
-      - /var/run/docker.sock:/var/run/docker.sock
+networks:
+  docker:
 
 volumes:
-  jenkins_home:
+  jenkins-data:
   docker-certs:
+  docker-certs-ca:
+services:
+
+  jenkins:
+    image: jenkins/jenkins:lts-jdk11
+    restart: unless-stopped
+    networks:
+      - docker
+    ports:
+      - 8080:8080
+      - 50000:50000
+    tty: true
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - docker-certs:/certs/client:ro
+      - /usr/bin/docker:/usr/bin/docker
+    environment:
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=1
+        
+  dind:
+    image: docker:dind
+    privileged: true
+    restart: unless-stopped
+    networks:
+      docker:
+        aliases:
+          - docker
+    tty: true
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - docker-certs:/certs/client
+      - docker-certs-ca:/certs/ca
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
